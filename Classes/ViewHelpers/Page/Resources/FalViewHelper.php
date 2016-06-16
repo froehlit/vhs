@@ -24,6 +24,7 @@ class FalViewHelper extends ResourcesFalViewHelper {
 
 	const defaultTable = 'pages';
 	const defaultField = 'media';
+	const defaultOverlayTable = 'pages_language_overlay';
 
 	/**
 	 * @var string
@@ -36,6 +37,16 @@ class FalViewHelper extends ResourcesFalViewHelper {
 	protected $field = self::defaultField;
 
 	/**
+	 * @var string
+	 */
+	protected $overlayTable = self::defaultOverlayTable;
+
+	/**
+	 * @var boolean
+	 */
+	protected $useOverlayTable = FALSE;
+
+	/**
 	 * Initialize arguments.
 	 *
 	 * @return void
@@ -46,7 +57,23 @@ class FalViewHelper extends ResourcesFalViewHelper {
 
 		$this->overrideArgument('table', 'string', 'The table to lookup records.', FALSE, self::defaultTable);
 		$this->overrideArgument('field', 'string', 'The field of the table associated to resources.', FALSE, self::defaultField);
+		$this->registerArgument('overlayTable', 'string', 'The table overlay to lookup records.', FALSE, self::defaultOverlayTable);
 		$this->registerSlideArguments();
+	}
+
+	/**
+	 * @param array $record
+	 * @return array
+	 */
+	public function getResources($record) {
+		$backupUseOverlayTable = $this->useOverlayTable;
+		if (FALSE === $this->isDefaultLanguage()) {
+			$this->setUseOverlayTable();
+		}
+		$resources = parent::getResources($record);
+		$this->setUseOverlayTable($backupUseOverlayTable);
+
+		return $resources;
 	}
 
 	/**
@@ -76,6 +103,27 @@ class FalViewHelper extends ResourcesFalViewHelper {
 	}
 
 	/**
+	 * @return string
+	 * @throws Exception
+	 */
+	public function getTable() {
+		if (FALSE === $this->useOverlayTable) {
+			return parent::getTable();
+		}
+
+		$overlayTable = $this->arguments['overlayTable'];
+		if (NULL === $overlayTable) {
+			$overlayTable = $this->overlayTable;
+		}
+
+		if (TRUE === empty($overlayTable) || FALSE === is_string($overlayTable)) {
+			throw new Exception('The "overlayTable" argument must be specified and must be a string.', 1466067579);
+		}
+
+		return $overlayTable;
+	}
+
+	/**
 	 * @return boolean
 	 */
 	protected function isDefaultLanguage() {
@@ -97,6 +145,14 @@ class FalViewHelper extends ResourcesFalViewHelper {
 	 */
 	public function getActiveRecord() {
 		return $GLOBALS['TSFE']->page;
+	}
+
+	/**
+	 * @param bool $value
+	 * @return void
+	 */
+	protected function setUseOverlayTable($value = TRUE) {
+		$this->useOverlayTable = (boolean) $value;
 	}
 
 	/**
